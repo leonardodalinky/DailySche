@@ -14,8 +14,8 @@ Version: 3.0.0 on 12 Apr
 
 ## Learn C The Hard Way
 
-说明：对Learn C The Hard Way的代码的rust实现练习
+说明：对LCTHW的代码的rust实现练习，并写了几道其他的自定义题
 
-目录：`./c`
+目录：`./c`、`./p`
 
-完成度：8/15
+完成度：15/15

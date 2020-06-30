@@ -12,3 +12,6 @@ Cargo.lock
 # ignore pdf
 *.pdf
 pdf/
+
+# ignore idea
+.idea/
