@@ -8,7 +8,7 @@
 |         Sun         |         Mon          |         Tues         |         Wed         |         Thu         |         Fri         |         Sat         |
 | :-----------------: | :------------------: | :------------------: | :-----------------: | :-----------------: | :-----------------: | :-----------------: |
 | 28<br>([D1](#Day1)) | 29<br/>([D2](#Day2)) | 30<br/>([D3](#Day3)) | 1<br/>([D4](#Day4)) | 2<br/>([D5](#Day5)) | 3<br/>([D6](#Day6)) | 4<br/>([D7](#Day7)) |
-|          5          |          6           |          7           |          8          |          9          |         10          |         11          |
+| 5<br/>([D8](#Day8)) |          6           |          7           |          8          |          9          |         10          |         11          |
 |         12          |          13          |          14          |         15          |         16          |         17          |         18          |
 |         19          |          20          |          21          |         22          |         23          |         24          |         25          |
 |         26          |          27          |          28          |         29          |         30          |         31          |                     |
@@ -28,6 +28,8 @@
 * [Day 6(2020/07/03)](#Day6)
 
 * [Day 7(2020/07/04)](#Day7)
+
+* [Day 8(2020/07/05)](#Day8)
 
   <br/>
 
@@ -105,6 +107,8 @@
 
 <br/>
 
+<span id="Day6"></span>
+
 ## Day 6
 
 ### 任务1：Thu的Risc-V相关视频（90%）
@@ -121,4 +125,57 @@
 
 <br/>
 
+<span id="Day7"></span>
+
 ## Day 7
+
+### 任务1：搭建环境
+
+原生的ubuntu 18.04系统几乎什么库都没有，修修补补装了起来。编译rCore-Tutorial时发现失败，绕了很久的圈子，才知道要先按照Lab 0来写一会，才能慢慢搭建完，感觉到浪费了人生。
+
+### 任务2：Lab 0
+
+完成了Lab 0。
+
+由于在risc-v的asm手册上没有发现` .space `标记，于是使用` .size `实现了相同的初始化栈功能。
+
+```assembly
+    .section .bss.stack
+    .global boot_stack
+boot_stack:
+    # 16K 启动栈大小
+    .zero 1024 * 16
+    .global boot_stack_top
+boot_stack_top:
+    # 栈结尾
+```
+
+教程中的` llvm_asm! `宏在现在的rust版本中，已经逐渐逐渐被` asm! `宏取代，于是自己将Lab 0中的相关的内嵌汇编代码修正了。
+
+```rust
+/// SBI 调用
+#[inline(always)]
+fn sbi_call(which: usize, arg0: usize, arg1: usize, arg2: usize) -> usize {
+    let ret;
+    unsafe {
+        asm!("ecall",
+            inout("x10") arg0 => ret,
+            in("x11") arg1,
+            in("x12") arg2,
+            in("x17") which);
+    }
+
+    ret
+}
+```
+
+### 明日预定任务：阅读Privilege文档+Lab1
+
+准备补读之前的Privilege部分的文档，在进入异常机制前需要仔细研读CSR相关部分。
+
+<br/>
+
+<span id="Day8"></span>
+
+## Day 8
+
