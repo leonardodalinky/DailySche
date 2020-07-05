@@ -2,6 +2,7 @@ TARGET      := riscv64imac-unknown-none-elf
 MODE        := debug
 KERNEL_FILE := target/$(TARGET)/$(MODE)/os
 BIN_FILE    := target/$(TARGET)/$(MODE)/kernel.bin
+CARGO_BUILD_FLAGS := --target $(TARGET)
 
 OBJDUMP     := rust-objdump --arch-name=riscv64
 OBJCOPY     := rust-objcopy --binary-architecture=riscv64
@@ -17,7 +18,7 @@ doc:
 
 # 编译 kernel
 kernel:
-	@cargo build
+	@cargo build $(CARGO_BUILD_FLAGS)
 
 # 生成 kernel 的二进制文件
 $(BIN_FILE): kernel

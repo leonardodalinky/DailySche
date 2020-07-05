@@ -3,9 +3,6 @@
 //! 基于 `buddy_system_allocator` crate，致敬杰哥。
 
 use super::config::KERNEL_HEAP_SIZE;
-// have to use private crate 'alloc'
-#[allow(pub_use_of_private_extern_crate)]
-use buddy_system_allocator::alloc;
 use buddy_system_allocator::LockedHeap;
 
 /// 进行动态内存分配所用的堆空间
