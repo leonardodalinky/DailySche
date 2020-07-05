@@ -181,3 +181,22 @@ fn sbi_call(which: usize, arg0: usize, arg1: usize, arg2: usize) -> usize {
 
 ## Day 8
 
+### 任务1：阅读Privilege文档
+
+花了一个下午，大致明白了其中的关系。不过硬知识太多，用的时候需要频繁查阅。
+
+### 任务2：Lab1+Lab2
+
+Lab 1跟着教程走，很快就复现了。
+
+问题在于Lab 2。因为我没找到Lab 2对应的源码，估计要git换一下commit号，但我懒惰了。而现有的rCore-Tutorial中的物理内存源码部分已经和虚拟内存部分糅合在一起，所以这部分还需要等明天完成Lab 3后才能正常工作。
+
+### 明日预定任务：Lab2+Lab3
+
+明天搞完Lab2和Lab3后，要整理一下整个内存模块。顺便深入一下线段树和SLAB分配算法。可能还得看一看页置换算法了。这就是个大坑了。
+
+<br/>
+
+<span id="Day9"></span>
+
+## Day 9
