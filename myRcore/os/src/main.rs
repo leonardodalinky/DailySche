@@ -44,7 +44,7 @@ mod interrupt;
 //mod kernel;
 mod memory;
 mod panic;
-//mod process;
+mod process;
 mod sbi;
 
 //use crate::memory::PhysicalAddress;
@@ -62,23 +62,31 @@ global_asm!(include_str!("asm/entry.asm"));
 /// 在 `_start` 为我们进行了一系列准备之后，这是第一个被调用的 Rust 函数
 #[no_mangle]
 pub extern "C" fn rust_main() -> ! {
-    println!("hello world!");
-    // 初始化各种模块
-    interrupt::init();
     memory::init();
+    interrupt::init();
 
-    // 物理页分配
-    for _ in 0..2 {
-        let frame_0 = match memory::frame::FRAME_ALLOCATOR.lock().alloc() {
-            Result::Ok(frame_tracker) => frame_tracker,
-            Result::Err(err) => panic!("{}", err)
-        };
-        let frame_1 = match memory::frame::FRAME_ALLOCATOR.lock().alloc() {
-            Result::Ok(frame_tracker) => frame_tracker,
-            Result::Err(err) => panic!("{}", err)
-        };
-        println!("{} and {}", frame_0.address(), frame_1.address());
+    // 新建一个带有内核映射的进程。需要执行的代码就在内核中
+    let process = Process::new_kernel().unwrap();
+
+    for message in 0..8 {
+        let thread = Thread::new(
+            process.clone(),            // 使用同一个进程
+            sample_process as usize,    // 入口函数
+            Some(&[message]),           // 参数
+        ).unwrap();
+        PROCESSOR.get().add_thread(thread);
     }
 
-    loop{}
+    // 把多余的 process 引用丢弃掉
+    drop(process);
+
+    PROCESSOR.get().run();
+}
+
+fn sample_process(message: usize) {
+    for i in 0..1000000 {
+        if i % 200000 == 0 {
+            println!("thread {}", message);
+        }
+    }
 }
