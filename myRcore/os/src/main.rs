@@ -38,7 +38,7 @@
 
 #[macro_use]
 mod console;
-//mod drivers;
+mod drivers;
 //mod fs;
 mod interrupt;
 //mod kernel;
@@ -61,26 +61,12 @@ global_asm!(include_str!("asm/entry.asm"));
 ///
 /// 在 `_start` 为我们进行了一系列准备之后，这是第一个被调用的 Rust 函数
 #[no_mangle]
-pub extern "C" fn rust_main() -> ! {
+pub extern "C" fn rust_main(_hart_id: usize, dtb_pa: PhysicalAddress) -> ! {
     memory::init();
     interrupt::init();
+    drivers::init(dtb_pa);
 
-    // 新建一个带有内核映射的进程。需要执行的代码就在内核中
-    let process = Process::new_kernel().unwrap();
 
-    for message in 0..8 {
-        let thread = Thread::new(
-            process.clone(),            // 使用同一个进程
-            sample_process as usize,    // 入口函数
-            Some(&[message]),           // 参数
-        ).unwrap();
-        PROCESSOR.get().add_thread(thread);
-    }
-
-    // 把多余的 process 引用丢弃掉
-    drop(process);
-
-    PROCESSOR.get().run();
 }
 
 fn sample_process(message: usize) {
