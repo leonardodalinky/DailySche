@@ -50,6 +50,8 @@ qemud:
 # 一键运行
 run: build qemu
 
+rund: build qemud
+
 # 一键 gdb
 debug: build
 	@tmux new-session -d \

@@ -12,6 +12,7 @@
 //! - `#![feature(llvm_asm)]`
 //!   内嵌汇编
 #![feature(llvm_asm)]
+#![feature(asm)]
 //!
 //! - `#![feature(global_asm)]`
 //!   内嵌整个汇编文件
@@ -41,5 +42,5 @@ pub extern "C" fn rust_main() {
 
     unsafe { llvm_asm!("ebreak") };
 
-    panic!("end of rust_main");
+    // panic!("end of rust_main");
 }

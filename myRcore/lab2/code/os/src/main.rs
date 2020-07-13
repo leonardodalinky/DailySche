@@ -45,20 +45,23 @@ global_asm!(include_str!("entry.asm"));
 #[no_mangle]
 pub extern "C" fn rust_main() {
     interrupt::init();
+    //println!("test_main");
     memory::init();
 
     // 动态内存分配测试
     use alloc::boxed::Box;
     use alloc::vec::Vec;
     let v = Box::new(5);
+    println!("test build box");
     assert_eq!(*v, 5);
     core::mem::drop(v);
+    println!("test drop box");
 
     let mut vec = Vec::new();
-    for i in 0..10000 {
+    for i in 0..100 {
         vec.push(i);
     }
-    assert_eq!(vec.len(), 10000);
+    assert_eq!(vec.len(), 100);
     for (i, value) in vec.into_iter().enumerate() {
         assert_eq!(value, i);
     }

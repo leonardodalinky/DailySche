@@ -378,6 +378,78 @@ fn supervisor_timer(_: &Context) {
 
 `supervisor_timer()` 函数就进行一次计数，并且设置下一次时钟中断的时间。时钟中断在之后的线程调度中，起着重要的作用。
 
+## 实验题
+
+1. 简述：在 `rust_main` 函数中，执行 `ebreak` 命令后至函数结束前，`sp` 寄存器的值是怎样变化的？
+
+   **答**：
+
+   `ebreak` 执行后，首先更新 `sepc` 和 `scause` ，然后进入到 `__interrupt` 函数内。
+
+   在 `__interrupt` 函数内，首先先开辟一个 $34\times 8$ 的栈空间，即 `sp` 的值减去 $34\times 8$ 大小，存放着此时的上下文。
+
+   之后，进入 `handle_interrupt` 函数部分，从这里开始，遵循正常的函数调用和栈使用规则，一直到返回 `__restore` 函数中。
+
+   在 `__restore` 函数内，函数读取完栈中存放的上下文并还原寄存器后，将栈中的 $34\times 8$ 的空间还原，即 `sp` 的值加上 $34\times 8$ 大小后，返回 `rust_main` 函数体内，并执行 `ebreak` 的下一条指令。
+
+2. 回答：如果去掉 `rust_main` 后的 `panic` 会发生什么，为什么？
+
+   **答**：
+
+   程序在从 `entry.asm` 进入 `rust_main` 的时候，其 `ra` 寄存器中存放着在 `_start` 函数中的 `jal rust_main` 指令的下一条指令的地址。
+
+   当去掉 `rust_main` 后的 `panic` 时，就会返回到其 `ra` 寄存器中存放的地址，而在 `entry.asm` 中可以发现， `jal rust_main` 后面已经是其他的段，而且段中的内容将会由链接器来决定，所以我们无法预测之后发生的事情。
+
+3. 实验
+
+   1. 实验：如果程序访问不存在的地址，会得到 `Exception::LoadFault`。模仿捕获 `ebreak` 和时钟中断的方法，捕获 `LoadFault`（之后 `panic` 即可）。
+
+      **思路**：即在 `interrupt::handler::handle_interrupt` 中，增加一个新的分支即可
+
+      ```rust
+      pub fn handle_interrupt(context: &mut Context, scause: Scause, stval: usize) {
+          // 返回的 Context 必须位于放在内核栈顶
+          match scause.cause() {
+              ... ...,
+              // read illegal address
+              Trap::Exception(Exception::LoadFault) => loadfault(context, stval),
+              // 其他情况，终止当前线程
+              _ => fault(context, scause, stval),
+          };
+      }
+      ```
+
+   2. 实验：在处理异常的过程中，如果程序想要非法访问的地址是 `0x0`，则打印 `SUCCESS!`。
+   
+      **思路**：在运行时，如果出现 `Exception::LoadFault` 异常并被捕捉的话，则 `stval` 寄存器会存放着非法访问的地址。因此只需要改变一下 `loadfault` 函数体为如下即可：
+   
+      ```rust
+      /// 处理时钟中断
+      fn loadfault(_context: &mut Context, stval: usize) {
+          if stval == 0x0 {
+              println!("SUCCESS!");
+          }
+          panic!("An illegal address!");
+      }
+      ```
+   
+   3. 实验：添加或修改少量代码，使得运行时触发这个异常，并且打印出 `SUCCESS!`。
+   
+      **思路**：移除 `rust_main` 中的 `panic!` 语句，当从 `rust_main` 返回到汇编代码后，用汇编指令将 `pc` 的值跳转到 `0x0` 处。修改 `entry.asm` 代码如下：
+   
+      ```assembly
+      ... ...
+      # 目前 _start 的功能：将预留的栈空间写入 $sp，然后跳转至 rust_main
+      _start:
+          la sp, boot_stack_top
+          jal rust_main
+          li t0, 0	# load a immediate 0
+          jr t0		# jump to address 0x0
+      ... ...
+      ```
+   
+      
+
 ## 总结
 
 这一章节，我们完成了最基本的中断处理，还有许多中断形式会在之后的几个章节中，逐步增加。中断在操作系统中的地位十分重要，因此彻底了解中断的工作机制，有助于之后的学习。

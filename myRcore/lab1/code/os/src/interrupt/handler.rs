@@ -36,6 +36,8 @@ pub fn handle_interrupt(context: &mut Context, scause: Scause, stval: usize) {
         Trap::Exception(Exception::Breakpoint) => breakpoint(context),
         // 时钟中断
         Trap::Interrupt(Interrupt::SupervisorTimer) => supervisor_timer(context),
+        // read illegal address
+        Trap::Exception(Exception::LoadFault) => loadfault(context, stval),
         // 其他情况，终止当前线程
         _ => fault(context, scause, stval),
     };
@@ -52,6 +54,14 @@ fn breakpoint(context: &mut Context) {
 /// 处理时钟中断
 fn supervisor_timer(_context: &mut Context) {
     timer::tick();
+}
+
+/// 处理时钟中断
+fn loadfault(_context: &mut Context, stval: usize) {
+    if stval == 0x0 {
+        println!("SUCCESS!");
+    }
+    panic!("An illegal address!");
 }
 
 /// 出现未能解决的异常
