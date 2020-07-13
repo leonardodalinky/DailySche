@@ -443,7 +443,7 @@ fn supervisor_timer(_: &Context) {
       _start:
           la sp, boot_stack_top
           jal rust_main
-          li t0, 0	# load a immediate 0
+          li t0, 0	# load an immediate 0
           jr t0		# jump to address 0x0
       ... ...
       ```
