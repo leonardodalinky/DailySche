@@ -9,7 +9,7 @@
 pub mod address;
 pub mod config;
 pub mod frame;
-pub mod heap3;
+pub mod heap;
 pub mod range;
 
 /// 一个缩写，模块中一些函数会使用
@@ -21,8 +21,7 @@ pub use {address::*, config::*, frame::FRAME_ALLOCATOR, range::Range};
 ///
 /// - [`heap::init`]
 pub fn init() {
-    //println!("test heap:init");
-    heap3::init();
+    heap::init();
     // 允许内核读写用户态内存
     unsafe { riscv::register::sstatus::set_sum() };
 

@@ -6,5 +6,7 @@
 extern crate alloc;
 
 mod allocator;
+mod ds;
 
 pub use allocator::*;
+pub use ds::*;

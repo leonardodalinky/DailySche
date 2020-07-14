@@ -3,6 +3,7 @@
 mod stacked_allocator;
 mod bitmap_vector_allocator;
 mod reverse_allocator;
+mod segment_allocator;
 
 /// 分配器：固定容量，每次分配 / 回收一个元素
 pub trait Allocator {
@@ -41,9 +42,12 @@ pub trait RAllocator {
 pub use stacked_allocator::StackedAllocator;
 pub use bitmap_vector_allocator::BitmapVectorAllocator;
 pub use reverse_allocator::ReverseAllocator;
+pub use segment_allocator::SegmentAllocator;
 
 /// 默认使用的分配器
 pub type AllocatorImpl = StackedAllocator;
+/// another frame allocator
+pub type AllocatorImpl2 = SegmentAllocator;
 
 pub type VectorAllocatorImpl = BitmapVectorAllocator;
 
