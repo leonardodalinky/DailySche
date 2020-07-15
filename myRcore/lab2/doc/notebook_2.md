@@ -344,10 +344,6 @@ pub trait Allocator {
 
 好一个 `spin::Mutex` 锁，减轻了我们之后多线程内存分配的负担。
 
-### Allocator的算法
-
-TODO
-
 ### 测试运行
 
 >  最后，在把新写的模块加载进来，并在 main 函数中进行简单的测试：
