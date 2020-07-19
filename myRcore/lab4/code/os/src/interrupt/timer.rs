@@ -7,7 +7,7 @@ use riscv::register::{sie, time};
 pub static mut TICKS: usize = 0;
 
 /// 时钟中断的间隔，单位是 CPU 指令
-static INTERVAL: usize = 100000;
+static mut INTERVAL: usize = 100000;
 
 /// 初始化时钟中断
 ///
@@ -25,7 +25,7 @@ pub fn init() {
 ///
 /// 获取当前时间，加上中断间隔，通过 SBI 调用预约下一次中断
 fn set_next_timeout() {
-    set_timer(time::read() + INTERVAL);
+    set_timer(time::read() + unsafe { INTERVAL });
 }
 
 /// 每一次时钟中断时调用
@@ -40,3 +40,10 @@ pub fn tick() {
         }
     }
 }
+
+// change the interval
+// pub fn set_time_interval(interval: usize) {
+//     unsafe {
+//         INTERVAL = interval;
+//     }
+// }

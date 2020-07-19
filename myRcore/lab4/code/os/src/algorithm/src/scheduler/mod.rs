@@ -2,6 +2,7 @@
 
 mod fifo_scheduler;
 mod hrrn_scheduler;
+mod mlfq_scheduler;
 
 /// 线程调度器
 ///
@@ -25,5 +26,6 @@ pub trait Scheduler<ThreadType: Clone + Eq>: Default {
 
 pub use fifo_scheduler::FifoScheduler;
 pub use hrrn_scheduler::HrrnScheduler;
+pub use mlfq_scheduler::MlfqScheduler;
 
-pub type SchedulerImpl<T> = HrrnScheduler<T>;
+pub type SchedulerImpl<T> = MlfqScheduler<T>;

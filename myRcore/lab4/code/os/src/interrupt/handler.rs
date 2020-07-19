@@ -70,9 +70,10 @@ fn breakpoint(context: &mut Context) -> *mut Context {
 
 /// 处理时钟中断
 fn supervisor_timer(context: &mut Context) -> *mut Context {
-    timer::tick();
     PROCESSOR.get().park_current_thread(context);
-    PROCESSOR.get().prepare_next_thread()
+    let ret = PROCESSOR.get().prepare_next_thread();
+    timer::tick();
+    ret
 }
 
 /// 出现未能解决的异常，终止当前线程
