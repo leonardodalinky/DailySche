@@ -52,7 +52,7 @@ impl<ThreadType: Clone + Eq> Default for MlfqScheduler<ThreadType> {
 }
 
 impl<ThreadType: Clone + Eq> Scheduler<ThreadType> for MlfqScheduler<ThreadType> {
-    fn add_thread<T>(&mut self, thread: ThreadType, _priority: T) {
+    fn add_thread(&mut self, thread: ThreadType, _priority: usize) {
         // decide which level would the thread join
         self.levels[0].queue.push_back(HrrnThread {
             birth_time: self.current_time,
@@ -95,5 +95,5 @@ impl<ThreadType: Clone + Eq> Scheduler<ThreadType> for MlfqScheduler<ThreadType>
         }
         assert_eq!(1, remove_count);
     }
-    fn set_priority<T>(&mut self, _thread: ThreadType, _priority: T) {}
+    fn set_priority(&mut self, _thread: ThreadType, _priority: usize) {}
 }
