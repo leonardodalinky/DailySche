@@ -21,6 +21,7 @@
 //! - `#![feature(llvm_asm)]`
 //!   内嵌汇编
 #![feature(llvm_asm)]
+#![feature(asm)]
 //!
 //! - `#![feature(global_asm)]`
 //!   内嵌整个汇编文件
@@ -47,10 +48,10 @@ mod panic;
 mod process;
 mod sbi;
 
-//use crate::memory::PhysicalAddress;
-//use fs::*;
+use crate::memory::PhysicalAddress;
+use fs::*;
 use process::*;
-//use xmas_elf::ElfFile;
+use xmas_elf::ElfFile;
 
 extern crate alloc;
 
@@ -61,14 +62,16 @@ global_asm!(include_str!("entry.asm"));
 ///
 /// 在 `_start` 为我们进行了一系列准备之后，这是第一个被调用的 Rust 函数
 #[no_mangle]
-pub extern "C" fn rust_main() -> ! {
+pub extern "C" fn rust_main(_hart_id: usize, dtb_pa: PhysicalAddress) -> ! {
     memory::init();
     interrupt::init();
+    drivers::init(dtb_pa);
+    fs::init();
 
     // 新建一个带有内核映射的进程。需要执行的代码就在内核中
     let process = Process::new_kernel().unwrap();
 
-    for message in 0..8 {
+    for message in 0..1 {
         let thread = Thread::new(
             process.clone(),            // 使用同一个进程
             sample_process as usize,    // 入口函数
@@ -84,9 +87,13 @@ pub extern "C" fn rust_main() -> ! {
 }
 
 fn sample_process(message: usize) {
-    for i in 0..1000000 {
-        if i % 200000 == 0 {
-            println!("thread {}", message);
+    loop {
+        for i in 0..2000000 {
+            let a = 1;
+            let _b = a;
+            if i % 2000000 == 0 {
+                println!("thread {}", message);
+            }
         }
     }
 }

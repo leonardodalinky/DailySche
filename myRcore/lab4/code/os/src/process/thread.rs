@@ -91,6 +91,41 @@ impl Thread {
         Ok(thread)
     }
 
+    /// fork current thread
+    pub fn fork_with_context(&self, context: Option<Context>) -> Arc<Thread> {
+        let stack: Range<VirtualAddress> = self.process
+        .write()
+        .alloc_page_range(STACK_SIZE, Flags::READABLE | Flags::WRITABLE).expect("failed to fork stack");
+
+        // refresh page tables
+        unsafe {
+            asm!("sfence.vma");
+        }
+        // copy the stack content
+        // the kernel is running now
+        unsafe {
+            let src = self.stack.start.0 as *mut usize;
+            let dst = stack.start.0 as *mut usize;
+            core::ptr::copy_nonoverlapping(src, dst, STACK_SIZE / core::mem::size_of::<usize>());
+        }
+
+        let mut context_unwrap = context.expect("fork context is none");
+        context_unwrap.set_sp(context_unwrap.sp() - usize::from(self.stack.start) + usize::from(stack.start));
+        Arc::new(Thread {
+            id: unsafe {
+                THREAD_COUNTER += 1;
+                THREAD_COUNTER
+            },
+            stack: stack,
+            process: self.process.clone(),
+            inner: Mutex::new(ThreadInner {
+                context: Some(context_unwrap),
+                sleeping: self.inner().sleeping,
+                descriptors: vec![STDIN.clone(), STDOUT.clone()],
+            }),
+        })
+    }
+
     pub fn inner(&self) -> spin::MutexGuard<ThreadInner> {
         self.inner.lock()
     }

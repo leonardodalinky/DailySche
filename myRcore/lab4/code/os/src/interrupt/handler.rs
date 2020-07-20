@@ -3,12 +3,13 @@ use super::timer;
 use crate::fs::STDIN;
 use crate::kernel::syscall_handler;
 use crate::memory::*;
-use crate::process::PROCESSOR;
+use crate::process::{PROCESSOR, Thread};
 use crate::sbi::console_getchar;
 use riscv::register::{
     scause::{Exception, Interrupt, Scause, Trap},
     sie, stvec,
 };
+use alloc::sync::Arc;
 
 global_asm!(include_str!("./interrupt.asm"));
 
@@ -92,6 +93,21 @@ fn fault(_context: &mut Context, scause: Scause, stval: usize) -> *mut Context {
 /// 处理外部中断，只实现了键盘输入
 fn supervisor_external(context: &mut Context) -> *mut Context {
     let mut c = console_getchar();
+    // ctrl-c
+    // shutdown current thread
+    if c == 3 {
+        PROCESSOR.get().kill_current_thread();
+        println!("Kill current Thread!");
+        return PROCESSOR.get().prepare_next_thread();
+    }
+    // f
+    // fork current thread
+    else if c == 102 {
+        let current_thread: Arc<Thread> = PROCESSOR.get().current_thread();
+        let fork_thread = current_thread.fork_with_context(Some(*context));
+        PROCESSOR.get().add_thread(fork_thread);
+        println!("Fork current Thread!");
+    }
     if c <= 255 {
         if c == '\r' as usize {
             c = '\n' as usize;
