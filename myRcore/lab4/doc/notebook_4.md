@@ -513,7 +513,7 @@ thread 0
 ...
 ```
 
-## 实验题
+## 实验题（上）
 
 1. **原理**：线程切换之中，页表是何时切换的？页表的切换会不会影响程序 / 操作系统的运行？为什么？
 
@@ -528,6 +528,99 @@ thread 0
 
 3. **实验**：当键盘按下 Ctrl + C 时，操作系统应该能够捕捉到中断。实现操作系统捕获该信号并结束当前运行的线程（你可能需要阅读一点在实验指导中没有提到的代码）
 
-   **答**：
+   **思路**：在 `driver` 和 `fs` 模块都成功加载后，修改 `handler::interrupt::supervisor_external` 函数如下：
+
+   ```rust
+   /// 处理外部中断，只实现了键盘输入
+   fn supervisor_external(context: &mut Context) -> *mut Context {
+       let mut c = console_getchar();
+       // ctrl-c
+       // shutdown current thread
+       if c == 3 {
+           PROCESSOR.get().kill_current_thread();
+           println!("Kill current Thread!");
+           return PROCESSOR.get().prepare_next_thread();
+       }
+       if c <= 255 {
+           if c == '\r' as usize {
+               c = '\n' as usize;
+           }
+           STDIN.push(c as u8);
+       }
+       context
+   }
+   ```
+
+   其中 `if c == 3` 中的 3 表示 `ctrl-c` 的 `ascii` 码。
+
+   程序运行过程中按下 `ctrl-c` 后，即会终止当前线程，并切换到下一个线程。
+
+   代码位于 `os/interrupt/handler.rs` 中。
 
 4. **实验**：实现线程的 `fork()`。目前的内核线程不能进行系统调用，所以我们先简化地实现为“按 F 进入 fork”。fork 后应当为目前的线程复制一份几乎一样的拷贝，新线程与旧线程同属一个进程，公用页表和大部分内存空间，而新线程的栈是一份拷贝。
+
+   **思路**：模仿线程的 `new` 的过程，获得一个新的 `fork_with_context` 函数
+
+   ```rust
+       /// fork current thread
+       pub fn fork_with_context(&self, context: Option<Context>) -> Arc<Thread> {
+           let stack: Range<VirtualAddress> = self.process
+           .write()
+           .alloc_page_range(STACK_SIZE, Flags::READABLE | Flags::WRITABLE).expect("failed to fork stack");
+   
+           // refresh page tables
+           unsafe {
+               asm!("sfence.vma");
+           }
+           // copy the stack content
+           // the kernel is running now
+           unsafe {
+               let src = self.stack.start.0 as *mut usize;
+               let dst = stack.start.0 as *mut usize;
+               core::ptr::copy_nonoverlapping(
+                   src, 
+                   dst, 
+                   STACK_SIZE / core::mem::size_of::<usize>()
+               );
+           }
+   
+           let mut context_unwrap = context.expect("fork context is none");
+           context_unwrap.set_sp(context_unwrap.sp() - usize::from(self.stack.start) +
+               usize::from(stack.start));
+           Arc::new(Thread {
+               id: unsafe {
+                   THREAD_COUNTER += 1;
+                   THREAD_COUNTER
+               },
+               stack: stack,
+               process: self.process.clone(),
+               inner: Mutex::new(ThreadInner {
+                   context: Some(context_unwrap),
+                   sleeping: self.inner().sleeping,
+                   descriptors: vec![STDIN.clone(), STDOUT.clone()],
+               }),
+           })
+       }
+   ```
+
+   这个函数复制当前的线程除了 `Context` 的部分，并且重新开了一个函数栈，同时使用 `core::ptr::copy_nonoverlapping` 函数，将栈的内容完整的复制过去，同时将新的栈指针指向正确的位置。
+
+   代码位于 `os/process/thread.rs` 中。
+
+   这种 fork 有几个问题：
+
+   1. 由于这属于线程的 fork，如果在线程中拥有指针，则在 fork 后指针会失效，十分危险。
+
+   2. 当线程死亡后，由于 `segment` 中并没有删除死亡线程的运行栈段，所以会导致下一次 fork 的时候，虚拟内存的地址会不断升高。
+
+## 实验题（下）
+
+1. **实验**：了解并实现 Stride Scheduling 调度算法，为不同线程设置不同优先级，使得其获得与优先级成正比的运行时间。
+
+   **答**：TODO 正在coding中
+
+2. **分析**：
+
+   - 在 Stride Scheduling 算法下，如果一个线程进入了一段时间的等待（例如等待输入，此时它不会被运行），会发生什么？
+   - 对于两个优先级分别为 9 和 1 的线程，连续 10 个时间片中，前者的运行次数一定更多吗？
+   - 你认为 Stride Scheduling 算法有什么不合理之处？可以怎样改进？
