@@ -95,5 +95,5 @@ impl<ThreadType: Clone + Eq> Scheduler<ThreadType> for MlfqScheduler<ThreadType>
         }
         assert_eq!(1, remove_count);
     }
-    fn set_priority(&mut self, _thread: ThreadType, _priority: usize) {}
+    fn set_priority(&mut self, _thread: &ThreadType, _priority: usize) {}
 }

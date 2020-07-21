@@ -105,7 +105,7 @@ fn supervisor_external(context: &mut Context) -> *mut Context {
     else if c == 102 {
         let current_thread: Arc<Thread> = PROCESSOR.get().current_thread();
         let fork_thread = current_thread.fork_with_context(Some(*context));
-        PROCESSOR.get().add_thread(fork_thread);
+        PROCESSOR.get().add_thread(fork_thread, 0);
         println!("Fork current Thread!");
     }
     if c <= 255 {

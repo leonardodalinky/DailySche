@@ -37,6 +37,7 @@
 #![feature(naked_functions)]
 #![feature(slice_fill)]
 
+
 #[macro_use]
 mod console;
 mod drivers;
@@ -71,13 +72,13 @@ pub extern "C" fn rust_main(_hart_id: usize, dtb_pa: PhysicalAddress) -> ! {
     // 新建一个带有内核映射的进程。需要执行的代码就在内核中
     let process = Process::new_kernel().unwrap();
 
-    for message in 0..1 {
+    for message in 0..3 {
         let thread = Thread::new(
             process.clone(),            // 使用同一个进程
             sample_process as usize,    // 入口函数
             Some(&[message]),           // 参数
         ).unwrap();
-        PROCESSOR.get().add_thread(thread);
+        PROCESSOR.get().add_thread(thread, message);
     }
 
     // 把多余的 process 引用丢弃掉

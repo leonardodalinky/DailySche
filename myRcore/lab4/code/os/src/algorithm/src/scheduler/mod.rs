@@ -22,7 +22,7 @@ pub trait Scheduler<ThreadType: Clone + Eq>: Default {
     /// 移除一个线程
     fn remove_thread(&mut self, thread: &ThreadType);
     /// 设置线程的优先级
-    fn set_priority(&mut self, thread: ThreadType, priority: usize);
+    fn set_priority(&mut self, thread: &ThreadType, priority: usize);
 }
 
 pub use fifo_scheduler::FifoScheduler;
@@ -30,4 +30,4 @@ pub use hrrn_scheduler::HrrnScheduler;
 pub use mlfq_scheduler::MlfqScheduler;
 pub use stride_scheduler::StrideScheduler;
 
-pub type SchedulerImpl<T> = MlfqScheduler<T>;
+pub type SchedulerImpl<T> = StrideScheduler<T>;

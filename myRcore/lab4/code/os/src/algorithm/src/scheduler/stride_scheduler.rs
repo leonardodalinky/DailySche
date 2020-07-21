@@ -1,16 +1,17 @@
 //! 最高响应比优先算法的调度器 [`HrrnScheduler`]
 
 use super::Scheduler;
-use alloc::collections::BinaryHeap;
+use alloc::collections::{BinaryHeap};
 use core::cmp::{Reverse, min, Ordering};
 
 /// 将线程和调度信息打包
+#[derive(Clone)]
 struct StrideThread<ThreadType: Clone + Eq> {
     /// each stride in each cycle
     stride: usize,
     /// total add-up counts
     pass: usize,
-    /// 线程数据
+    /// 线程数据s
     pub thread: ThreadType,
 }
 
@@ -33,7 +34,7 @@ impl<ThreadType: Clone + Eq> Default for StrideScheduler<ThreadType> {
 
 impl<ThreadType: Clone + Eq> Scheduler<ThreadType> for StrideScheduler<ThreadType> {
     fn add_thread(&mut self, thread: ThreadType, _priority: usize) {
-        let _priority = Self::get_valid_priority(_priority);
+        let _priority = Self::get_valid_stride(_priority);
         self.pool.push(Reverse(StrideThread {
             stride: _priority,
             pass: 0,
@@ -42,36 +43,38 @@ impl<ThreadType: Clone + Eq> Scheduler<ThreadType> for StrideScheduler<ThreadTyp
     }
     fn get_next(&mut self) -> Option<ThreadType> {
         // TODO
-        // 计时
-        self.current_time += 1;
-
-        // 遍历线程池，返回响应比最高者
-        let current_time = self.current_time; // borrow-check
-        if let Some(best) = self.pool.iter_mut().max_by(|x, y| {
-            ((current_time - x.birth_time) * y.service_count)
-                .cmp(&((current_time - y.birth_time) * x.service_count))
-        }) {
-            best.service_count += 1;
-            Some(best.thread.clone())
-        } else {
+        if let Some(t) = self.pool.pop() {
+            let mut th: StrideThread<ThreadType> = t.0;
+            th.pass += th.stride;
+            let ret = th.thread.clone();
+            self.pool.push(Reverse(th));
+            Some(ret)
+        }
+        else {
             None
         }
     }
     fn remove_thread(&mut self, thread: &ThreadType) {
-        // TODO:移除相应的线程并且确认恰移除一个线程
-        let mut removed = self.pool.drain_filter(|t| t.thread == *thread);
-        assert!(removed.next().is_some() && removed.next().is_none());
+        // 移除相应的线程并且确认恰移除一个线程
+        self.pool.retain(|t| t.0.thread != *thread);
     }
-    fn set_priority(&mut self, _thread: ThreadType, _priority: usize) {
-        // TODO
+    fn set_priority(&mut self, thread: &ThreadType, priority: usize) {
+        // set the 'stride' of specific thread
+        let mut pool_vec = self.pool.clone().into_vec();
+        for it in pool_vec.iter_mut() {
+            if (*it).0.thread == *thread {
+                (*it).0.stride = Self::get_valid_stride(priority);
+            }
+        }
+        self.pool = BinaryHeap::from(pool_vec);
     }
 
 }
 
 impl<ThreadType: Clone + Eq> StrideScheduler<ThreadType> {
     /// priority range from 0(inclusive) to 32(exclusive)
-    fn get_valid_priority(p: usize) -> usize {
-        min(31, p)
+    fn get_valid_stride(priority: usize) -> usize {
+        33 - min(32, priority + 1)
     }
 }
 

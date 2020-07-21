@@ -36,5 +36,5 @@ impl<ThreadType: Clone + Eq> Scheduler<ThreadType> for FifoScheduler<ThreadType>
         let mut removed = self.pool.drain_filter(|t| t == thread);
         assert!(removed.next().is_some() && removed.next().is_none());
     }
-    fn set_priority(&mut self, _thread: ThreadType, _priority: usize) {}
+    fn set_priority(&mut self, _thread: &ThreadType, _priority: usize) {}
 }

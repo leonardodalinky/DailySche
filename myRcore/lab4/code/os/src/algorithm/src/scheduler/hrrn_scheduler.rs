@@ -60,5 +60,5 @@ impl<ThreadType: Clone + Eq> Scheduler<ThreadType> for HrrnScheduler<ThreadType>
         let mut removed = self.pool.drain_filter(|t| t.thread == *thread);
         assert!(removed.next().is_some() && removed.next().is_none());
     }
-    fn set_priority(&mut self, _thread: ThreadType, _priority: usize) {}
+    fn set_priority(&mut self, _thread: &ThreadType, _priority: usize) {}
 }
