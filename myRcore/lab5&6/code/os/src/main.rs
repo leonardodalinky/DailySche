@@ -21,6 +21,7 @@
 //! - `#![feature(llvm_asm)]`
 //!   内嵌汇编
 #![feature(llvm_asm)]
+#![feature(asm)]
 //!
 //! - `#![feature(global_asm)]`
 //!   内嵌整个汇编文件
