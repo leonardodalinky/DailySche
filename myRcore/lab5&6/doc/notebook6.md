@@ -365,13 +365,82 @@ pub struct Condvar {
 
 当一个线程调用 `sys_read` 而缓冲区为空时，就会将其加入条件变量的 `watcher` 中，同时在 `Processor` 中移出活跃线程。而当键盘中断到来，读取到字符时，就会将线程重新放回调度器中，准备下一次调用。
 
-开放思考：如果多个线程同时等待输入流会怎么样？有什么解决方案吗？
+**开放思考**：如果多个线程同时等待输入流会怎么样？有什么解决方案吗？
+
+**答**：我认为，可以在每个进程下设置输入缓存区，当进程中有线程等待输入时，将输入流复制一份到进程中，而线程从缓存区中读取字符。
 
 ## 实验题
 
-1. 原理：使用条件变量之后，分别从线程和操作系统的角度而言读取字符的系统调用是阻塞的还是非阻塞的？
-2. 设计：如果要让用户线程能够使用 `Vec` 等，需要做哪些工作？如果要让用户线程能够使用大于其栈大小的动态分配空间，需要做哪些工作？
+1. **原理**：使用条件变量之后，分别从线程和操作系统的角度而言读取字符的系统调用是阻塞的还是非阻塞的？
+
+   **答**：对于线程而言，读取字符是阻塞的过程，线程会等待字符被读取。而对于操作系统而言，等待读取的线程会被置出线程调度队列，转而执行其他的线程，所以是非阻塞的。
+
+2. **设计**：如果要让用户线程能够使用 `Vec` 等，需要做哪些工作？如果要让用户线程能够使用大于其栈大小的动态分配空间，需要做哪些工作？
+
+   **答**：若要使用户现场可使用 `Vec` 等动态数据结构，需要在 rust 中实现本系统对应的 allocator 接口。若要使用动态分配空间，需要完善动态内存分配的系统调用接口，使程序能向系统请求分配内存页。
+
 3. 实验：实现 `get_tid` 系统调用，使得用户线程可以获取自身的线程 ID。
+
+   **答**：在我使用的 ubuntu 16.04 环境中，经查看 `unistd.h` 中可知 `getpid` 系统调用的 id 为 178，于是选择此作为系统调用号。
+
+   在 `syscall.rs` 下增加新的系统调用函数
+
+   ```rust
+   pub(super) fn sys_get_tid() -> SyscallResult {
+       let thread: Arc<Thread> = PROCESSOR.get().current_thread();
+       SyscallResult::Proceed(thread.id)
+   }
+   ```
+
+   
+
 4. 实验：将你在实验四（上）实现的 `clone` 改进成为 `sys_clone` 系统调用，使得该系统调用为父进程返回自身的线程 ID，而为子线程返回 0。
+
+   **答**：在我使用的 ubuntu 16.04 环境中，经查看 `unistd.h` 中可知 `sys_clone` 系统调用的 id 为 220，于是选择此作为系统调用号。
+
+   在 `syscall.rs` 下增加新的系统调用函数
+
+   ```rust
+   pub(super) fn sys_clone(context: Context) -> SyscallResult {
+       let current_thread: Arc<Thread> = PROCESSOR.get().current_thread();
+       current_thread.clone_with_context(Some(context));
+       SyscallResult::Proceed(current_thread.id)
+   }
+   ```
+
+   同时在 `thread.rs` 的 `clone_with_context` 函数中增加一行代码：
+
+   ```rust
+       /// clone current thread
+   pub fn clone_with_context(&self, context: Option<Context>) -> Arc<Thread> {
+       ... ...
+       // modify the `pc` and `a0`
+       let mut context_unwrap: Context = context.expect("fail to load context");
+       context_unwrap.set_sp(context_unwrap.sp() - usize::from(self.stack.start) + usize::from(stack.start));
+       // return 0 in the sub-thread
+       context_unwrap.x[10] = 0;
+       ... ...
+   }
+   ```
+
+   
+
 5. 实验：将一个文件打包进用户镜像，并让一个用户进程读取它并打印其内容。需要实现 `sys_open`，将文件描述符加入进程的 `descriptors` 中，然后通过 `sys_read` 来读取。
+
+   **答**：选择 `sys_open` 系统调用的 id 为 1024。实现下面代码：
+
+   ```rust
+   pub(super) fn sys_open(filename: &str) -> SyscallResult {
+       // 从文件系统中找到程序
+       let current_thread: Arc<Thread> = PROCESSOR.get().current_thread();
+       let inode = ROOT_INODE.find(filename).unwrap();
+       let descriptors: &mut Vec<Arc<dyn INode>> = &mut current_thread.inner().descriptors;
+       let ret_id = descriptors.len();
+       descriptors.push(inode);
+       SyscallResult::Proceed(ret_id as isize)
+   }
+   ```
+
 6. 挑战实验：实现 `sys_pipe`，返回两个文件描述符，分别为一个管道的读和写端。用户线程调用完 `sys_pipe` 后调用 `sys_fork`，父线程写入管道，子线程可以读取。读取时尽量避免忙等待。
+
+   **答：**忙于其他事务中。
