@@ -30,6 +30,7 @@ build: dependency
 	@rm -rf $(OUT_DIR)
 	@mkdir -p $(OUT_DIR)
 	@cp $(BIN_FILES) $(OUT_DIR)
+	@echo 123test > $(OUT_DIR)/test
 	@rcore-fs-fuse --fs sfs $(IMG_FILE) $(OUT_DIR) zip
 	@qemu-img convert -f raw $(IMG_FILE) -O qcow2 $(QCOW_FILE)
 	@qemu-img resize $(QCOW_FILE) +1G

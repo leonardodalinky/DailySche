@@ -379,7 +379,7 @@ pub struct Condvar {
 
    **答**：若要使用户现场可使用 `Vec` 等动态数据结构，需要在 rust 中实现本系统对应的 allocator 接口。若要使用动态分配空间，需要完善动态内存分配的系统调用接口，使程序能向系统请求分配内存页。
 
-3. 实验：实现 `get_tid` 系统调用，使得用户线程可以获取自身的线程 ID。
+3. **实验**：实现 `get_tid` 系统调用，使得用户线程可以获取自身的线程 ID。
 
    **答**：在我使用的 ubuntu 16.04 环境中，经查看 `unistd.h` 中可知 `getpid` 系统调用的 id 为 178，于是选择此作为系统调用号。
 
@@ -392,9 +392,26 @@ pub struct Condvar {
    }
    ```
 
+   同时修改 `user` crate 中的部分代码，得到实验结果如下：
+
+   ```
+   mod memory initialized
+   mod interrupt initialized
+   mod driver initialized
+   .
+   ..
+   hello_world
+   notebook
+   mod fs initialized
+   Hello world from user mode program!
+   Syscall: The thread id of hello-world is 1.
+   Thread 1 exit with code 0
+   src/process/processor.rs:101: 'all threads terminated, shutting down'
+   ```
+
    
 
-4. 实验：将你在实验四（上）实现的 `clone` 改进成为 `sys_clone` 系统调用，使得该系统调用为父进程返回自身的线程 ID，而为子线程返回 0。
+4. **实验**：将你在实验四（上）实现的 `clone` 改进成为 `sys_clone` 系统调用，使得该系统调用为父进程返回自身的线程 ID，而为子线程返回 0。
 
    **答**：在我使用的 ubuntu 16.04 环境中，经查看 `unistd.h` 中可知 `sys_clone` 系统调用的 id 为 220，于是选择此作为系统调用号。
 
@@ -423,9 +440,32 @@ pub struct Condvar {
    }
    ```
 
-   
+   运行测试结果如下：
 
-5. 实验：将一个文件打包进用户镜像，并让一个用户进程读取它并打印其内容。需要实现 `sys_open`，将文件描述符加入进程的 `descriptors` 中，然后通过 `sys_read` 来读取。
+   在用户程序中，我们克隆自身，并打印线程 id ：
+
+   ```
+   mod memory initialized
+   mod interrupt initialized
+   mod driver initialized
+   .
+   ..
+   hello_world
+   notebook
+   mod fs initialized
+   Hello world from user mode program!
+   Clone id is 0
+   Syscall: The thread id of hello-world is 2.
+   Thread 2 exit with code 0
+   Clone id is 1
+   Syscall: The thread id of hello-world is 1.
+   Thread 1 exit with code 0
+   src/process/processor.rs:101: 'all threads terminated, shutting down'
+   ```
+
+   可见该线程确实克隆了自身。
+
+5. **实验**：将一个文件打包进用户镜像，并让一个用户进程读取它并打印其内容。需要实现 `sys_open`，将文件描述符加入进程的 `descriptors` 中，然后通过 `sys_read` 来读取。
 
    **答**：选择 `sys_open` 系统调用的 id 为 1024。实现下面代码：
 
@@ -440,6 +480,27 @@ pub struct Condvar {
        SyscallResult::Proceed(ret_id as isize)
    }
    ```
+
+   在 `disk.img` 中添加一个 `test` 文件，其中只含有 `123test` 这个字符串，则测试结果：
+
+   ```
+   mod memory initialized
+   mod interrupt initialized
+   mod driver initialized
+   .
+   ..
+   test
+   hello_world
+   notebook
+   mod fs initialized
+   Hello world from user mode program!
+   test_fd is 2
+   [49, 50, 51, 116, 101, 115, 116, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+   Thread 1 exit with code 0
+   src/process/processor.rs:101: 'all threads terminated, shutting down'
+   ```
+
+   可见我们成功读取了 `test` 文件，并读取了其中字符的 Ascii 码。
 
 6. 挑战实验：实现 `sys_pipe`，返回两个文件描述符，分别为一个管道的读和写端。用户线程调用完 `sys_pipe` 后调用 `sys_fork`，父线程写入管道，子线程可以读取。读取时尽量避免忙等待。
 

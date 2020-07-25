@@ -1,17 +1,10 @@
 //! 实现各种系统调用
 
 use super::*;
-use crate::fs::*;
-use alloc::vec::Vec;
-use alloc::string::String;
 
 pub const SYS_READ: usize = 63;
 pub const SYS_WRITE: usize = 64;
 pub const SYS_EXIT: usize = 93;
-pub const SYS_GETTID: usize = 178;
-pub const SYS_CLONE: usize = 220;
-pub const SYS_OPEN: usize = 1024;
-
 
 /// 系统调用在内核之内的返回值
 pub(super) enum SyscallResult {
@@ -35,14 +28,6 @@ pub fn syscall_handler(context: &mut Context) -> *mut Context {
         SYS_READ => sys_read(args[0], args[1] as *mut u8, args[2]),
         SYS_WRITE => sys_write(args[0], args[1] as *mut u8, args[2]),
         SYS_EXIT => sys_exit(args[0]),
-        SYS_GETTID => sys_get_tid(),
-        SYS_CLONE => sys_clone(*context),
-        SYS_OPEN => {
-            let s = unsafe { String::from_raw_parts(args[0] as *mut u8, args[1], args[1]) };
-            let ret = sys_open(s.as_ref());
-            s.into_raw_parts();
-            ret
-        },
         _ => unimplemented!(),
     };
 
@@ -65,26 +50,4 @@ pub fn syscall_handler(context: &mut Context) -> *mut Context {
             PROCESSOR.get().prepare_next_thread()
         }
     }
-}
-
-pub(super) fn sys_get_tid() -> SyscallResult {
-    let thread: Arc<Thread> = PROCESSOR.get().current_thread();
-    SyscallResult::Proceed(thread.id)
-}
-
-pub(super) fn sys_clone(context: Context) -> SyscallResult {
-    let current_thread: Arc<Thread> = PROCESSOR.get().current_thread();
-    let thread_cloned: Arc<Thread> = current_thread.clone_with_context(Some(context));
-    PROCESSOR.get().add_thread(thread_cloned);
-    SyscallResult::Proceed(current_thread.id)
-}
-
-pub(super) fn sys_open(filename: &str) -> SyscallResult {
-    // 从文件系统中找到程序
-    let current_thread: Arc<Thread> = PROCESSOR.get().current_thread();
-    let inode = ROOT_INODE.find(filename).unwrap();
-    let descriptors: &mut Vec<Arc<dyn INode>> = &mut current_thread.inner().descriptors;
-    let ret_id = descriptors.len();
-    descriptors.push(inode);
-    SyscallResult::Proceed(ret_id as isize)
 }

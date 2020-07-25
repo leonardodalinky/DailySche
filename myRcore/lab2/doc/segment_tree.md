@@ -83,6 +83,23 @@ fn new(left: isize, right: isize) -> Self {
 
 因此，`put` 方法摊还时间复杂度为 $\mathrm{O}(\log n)$。
 
+## 运行结果
+
+在目录下 `make run` 得到结果与使用原始的分配器相同：
+
+```
+PMP0: 0x0000000080000000-0x000000008001ffff (A)
+PMP1: 0x0000000000000000-0xffffffffffffffff (A,R,W,X)
+mod interrupt initialized
+mod memory initialized
+test build box
+test drop box
+heap test passed
+PhysicalAddress(0x80a20000) and PhysicalAddress(0x80a21000)
+PhysicalAddress(0x80a20000) and PhysicalAddress(0x80a21000)
+src/main.rs:83: 'end of rust_main'
+```
+
 ## 复杂度分析
 
 ### 时间复杂度

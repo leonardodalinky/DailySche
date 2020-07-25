@@ -36,7 +36,7 @@
 //!   这允许我们在函数中间内联汇编使用 `ret` 提前结束，而不会导致栈出现异常
 #![feature(naked_functions)]
 #![feature(slice_fill)]
-#![feature(vec_into_raw_parts)]
+
 
 #[macro_use]
 mod console;
@@ -69,34 +69,32 @@ pub extern "C" fn rust_main(_hart_id: usize, dtb_pa: PhysicalAddress) -> ! {
     drivers::init(dtb_pa);
     fs::init();
 
-    // start_kernel_thread();
-    start_user_thread("hello_world");
-    // start_user_thread("notebook");
-
-    PROCESSOR.get().run()
-}
-
-fn start_kernel_thread() {
+    // 新建一个带有内核映射的进程。需要执行的代码就在内核中
     let process = Process::new_kernel().unwrap();
-    let thread = Thread::new(process, test as usize, None).unwrap();
-    PROCESSOR.get().add_thread(thread);
+
+    for message in 0..1 {
+        let thread = Thread::new(
+            process.clone(),            // 使用同一个进程
+            sample_process as usize,    // 入口函数
+            Some(&[message]),           // 参数
+        ).unwrap();
+        PROCESSOR.get().add_thread(thread, message);
+    }
+
+    // 把多余的 process 引用丢弃掉
+    drop(process);
+
+    PROCESSOR.get().run();
 }
 
-fn test() {
-    println!("hello");
-}
-
-fn start_user_thread(name: &str) {
-    // 从文件系统中找到程序
-    let app = fs::ROOT_INODE.find(name).unwrap();
-    // 读取数据
-    let data = app.readall().unwrap();
-    // 解析 ELF 文件
-    let elf = ElfFile::new(data.as_slice()).unwrap();
-    // 利用 ELF 文件创建线程，映射空间并加载数据
-    let process = Process::from_elf(&elf, true).unwrap();
-    // 再从 ELF 中读出程序入口地址
-    let thread = Thread::new(process, elf.header.pt2.entry_point() as usize, None).unwrap();
-    // 添加线程
-    PROCESSOR.get().add_thread(thread);
+fn sample_process(message: usize) {
+    loop {
+        for i in 0..2000000 {
+            let a = 1;
+            let _b = a;
+            if i % 2000000 == 0 {
+                println!("thread {}", message);
+            }
+        }
+    }
 }
